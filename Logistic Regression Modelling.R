@@ -1,18 +1,6 @@
-#--------------------------------------------6th class----------------------------------------------#
-#--------------------------------Logistic Regression Modelling--------------------------------#
 
-
-#------------------->Basic Functional Form:
-#P(Y=1)=e^Z/(1+e^Z), e refers to exponential
-#where Z=B0+B1X1+B2X2+..........+BNXN
-
-
-#Problem Statement: 
-
-
-#To predict which customers are more probable to churn (Y=1), based on the attributes to the customer 
-
-#------------------------------Preparing the environment for Logistic Regression---------------------------------------#
+#Logistic Regression Modelling
+#To predict which telecom customers are more probable to turn away based on the attributes to the customer 
 
 list.of.packages <- c("caret", "ggplot2","MASS","car","mlogit","caTools","sqldf","Hmisc","aod","BaylorEdPsych","ResourceSelection","pROC","ROCR")
 
@@ -20,32 +8,26 @@ new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"
 
 if(length(new.packages)) install.packages(new.packages, repos="http://cran.rstudio.com/")
 
-library(caret)# LOGISTIC MODEL
-library(ggplot2)# VISUALIZATION
-library(MASS)# VIF CALCULATION
-library(car)# VIF CALCULATION
-library(mlogit)# LOGISTIC MODEL
-library(sqldf)#WOE & IV
-library(Hmisc)#WOE & IV
-library(aod)#WALD TEST
-#library(BaylorEdPsych)#R-SQUARE
-library(ResourceSelection)#HOSMER LEMESHOW TEST
-library(pROC)#ROC CURVE
-library(ROCR)#ROC CURVE
-library(caTools)#TRAIN AND TEST SPLIT
+library(caret)
+library(ggplot2)
+library(MASS)
+library(car)
+library(mlogit)
+library(sqldf)
+library(Hmisc)
+library(aod)
+library(ResourceSelection)
+library(pROC)
+library(ROCR)
+library(caTools)
 
-#--------------------------------Setting the Working Directory-----------------------------------------#
-Path<-"C:/Users/arpendu.ganguly/OneDrive - Accenture/2021_DELL_ALL_Backup/02_G_IVY/R/Gan_B05/03Data"
-
-setwd(Path)
+Path<-"desktop/neha/data"
 getwd()
 
 
-data<-read.csv("Fn-UseC_-Telco-Customer-Churn.csv",header = TRUE)
-data1=data#To create a backup of original data
+data<-read.csv("TelcoCustomer-Churn.csv",header = TRUE)
+data1=data
 head(data1)
-
-#------------------------------------Basic Exploration of the data--------------------------------------------# 
 str(data1)
 summary(data1)
 dim(data1)
@@ -60,20 +42,15 @@ data1$Churn<-as.factor(data1$Churn)
 str(data1)
 
 
-#-----------------------------------Missing Value Treatment (if any)-------------------------------------------#
+#Missing Value Treatment 
 data.frame(colSums(is.na(data1)))
-
-
-#---->Substituting missing values with mean
 
 data1[is.na(data1$TotalCharges),19]=mean(data1$TotalCharges,na.rm=T)
 data.frame(colSums(is.na(data1)))
 
+#Splitting the data 
 
-
-#--------------------------Splitting the data into training and test data set------------------------#
-
-set.seed(144)#This is used to produce reproducible results, everytime we run the model
+set.seed(144)
 
 spl = sample.split(data1$Churn, 0.7)
 data.train = subset(data1, spl == TRUE)
@@ -86,15 +63,11 @@ str(data.test)
 dim(data.test)
 
 
-#-------------------------------------Logistic Regression Model Building------------------------------------------#
+#Logistic Regression Model Building
 
 
 model <- glm(Churn~., data=data.train, family=binomial())
 summary(model)
-
-
-
-
 ## Remove the insignificant variable
 model <- glm(Churn~ gender +	SeniorCitizen + Partner + Dependents + tenure +	PhoneService + MultipleLines
              + InternetService + OnlineSecurity + OnlineBackup + DeviceProtection + TechSupport + StreamingTV 
@@ -102,9 +75,6 @@ model <- glm(Churn~ gender +	SeniorCitizen + Partner + Dependents + tenure +	Pho
              + TotalCharges, data=data.train, family=binomial())
 summary(model)
 
-
-
-##
 model <- glm(Churn~ gender +	SeniorCitizen + Partner + Dependents + tenure +	PhoneService 
              + I(MultipleLines=="Yes")+ InternetService + I(OnlineSecurity=="Yes")+ I(OnlineBackup=="Yes") 
              + I(DeviceProtection=="Yes") + I(TechSupport=="Yes") + I(StreamingTV=="Yes") 
@@ -133,25 +103,6 @@ model <- glm(Churn~ 	SeniorCitizen  + tenure
              + I(StreamingMovies=="Yes") + Contract + PaperlessBilling + I(PaymentMethod=="Electronic check")+	tenure , data=data.train, family=binomial())
 summary(model)
 
-#-----------------------------------------Final Model---------------------------------------#
-## Remove  I(PaymentMethod == "Credit card (automatic)")
-
-
-vif(model)
-
-# Deviance is -2*Log Likelyhood
-# AIC = -2LL + 2k
-# BIC = -2LL + 2k x log(n)
-
-
-
-## Remove   MonthlyCharges, tenure
-# model <- glm(Churn~ 	SeniorCitizen  
-#              + I(MultipleLines=="Yes")+ InternetService  +tenure  + I(StreamingTV=="Yes") 
-#              + I(StreamingMovies=="Yes") + Contract + PaperlessBilling
-#              + I(PaymentMethod=="Electronic check")+MonthlyCharge, data=data.train, family=binomial())
-# summary(model)
-
 vif(model)
 
 
@@ -160,24 +111,13 @@ model <- glm(Churn~ 	SeniorCitizen
               + I(StreamingMovies=="Yes") + Contract + PaperlessBilling
               + I(PaymentMethod=="Electronic check")+tenure, data=data.train, family=binomial())
 summary(model)
-
-
 vif(model)
 
 
+#using Wald Test
+wald.test(b=coef(model), Sigma= vcov(model), Terms=1:12)
 
-#------------------------------Checking the overall fitness of the model----------------------------#
-
-
-#--------------->using Wald Test
-wald.test(b=coef(model), Sigma= vcov(model), Terms=1:12)#Here Terms, no. of independent variables in your final train model
-#Since, p-value is less then 0.001, hence we reject Ho that the all Bi=0
-
-
-#------------------->Lagrange Multiplier or Score Test (Assess wether the current variable 
-#significantly improves the model fit or not)
-
-
+#Lagrange Multiplier or Score Test 
 # Difference betweene null deviance and deviance
 modelChi <- model$null.deviance - model$deviance
 modelChi
@@ -186,31 +126,23 @@ modelChi
 chidf <- model$df.null - model$df.residual
 chidf
 
-
-# With more decimal places
-# If p value is less than .05 then we reject the null hypothesis that the model is no better than chance.
 chisq.prob <- 1 - pchisq(modelChi, chidf)
 format(round(chisq.prob, 2), nsmall = 5)
 
 
 
-#--------------------Lackfit Deviance for assessing wether the model where
-#Ho: Observed Frequencies/probabilties =Expected FRequencies/probabilties ----------------------------------------#
-residuals(model) # deviance residuals
-residuals(model, "pearson") # pearson residuals
-
+#Lackfit Deviance for assessing wether the model where
+residuals(model) 
+residuals(model, "pearson")
 sum(residuals(model, type = "pearson")^2)
 deviance(model)
 
-#########Larger p value indicate good model fit
+#Larger p value indicate good model fit
 1-pchisq(deviance(model), df.residual(model))
 #Thus, we accept the Null Hypthesis Ho thet Observed Frequencies = Expected Frequencies
 
 
 
-
-
-#####################################################################################################################
 # Coefficients (Odds)
 model$coefficients
 # Coefficients (Odds Ratio)
@@ -242,17 +174,12 @@ predclass <-ifelse(prediction>threshold,1,0)
 Confusion <- table(Predicted = predclass,Actual = data.train$Churn)
 AccuracyRate <- sum(diag(Confusion))/sum(Confusion)
 Gini <-2*auc(rocCurve)-1
-#Gini Coefficient is the area under the Lorenz Curve (Similiar ROC Curve where final model compared to baseline model)
-#Range 0.5 - 0.8
-
+#Gini Coefficient is the area under the Lorenz Curve 
 Confusion
 auc(rocCurve)
 plot(rocCurve)
 
-
-
-#########################################################################################################################
-### KS statistics calculation
+# KS statistics calculation
 data.train$m1.yhat <- predict(model, data.train, type = "response")
 m1.scores <- prediction(data.train$m1.yhat, data.train$Churn)
 
@@ -261,13 +188,9 @@ abline(0,1, lty = 8, col = "grey")
 
 m1.perf <- performance(m1.scores, "tpr", "fpr")
 ks1.logit <- max(attr(m1.perf, "y.values")[[1]] - (attr(m1.perf, "x.values")[[1]]))
-ks1.logit # Thumb rule : should lie between 0.4 - 0.7
+ks1.logit 
 
-############################################################################################################
-
-
-###################### Residual Analysis ################################################################################
-
+## Residual Analysis
 
 logistic_data <- data.train
 
@@ -282,17 +205,7 @@ logistic_data$leverage<-hatvalues(model)
 logistic_data[, c("leverage", "studentized.residuals", "dfbeta")]
 write.csv(logistic_data, "Res.csv")
 
-
-
-
-###########################################   Model has been build  ##############################################
-###########################################   Testing on the test dataset  #######################################
-
-
-
-
-# Logistic Regression on full data
-
+# Logistic Regression
 
 modelt <- glm(Churn~ 	SeniorCitizen  
               + I(MultipleLines=="Yes")+ InternetService    + I(StreamingTV=="Yes") 
@@ -306,15 +219,7 @@ modelt <- glm(Churn~ I(MultipleLines=="Yes")+ InternetService    + I(StreamingTV
 summary(modelt)
 
 
-
 vif(modelt)
-
-# Deviance is -2*Log Likelyhood
-# AIC = -2LL + 2k
-# BIC = -2LL + 2k x log(n)
-
-
-
 library(car)
 library(mlogit)
 
@@ -327,7 +232,6 @@ chidf <- modelt$df.null - modelt$df.residual
 chidf
 
 # With more decimal places
-# If p value is less than .05 then we reject the null hypothesis that the model is no better than chance.
 chisq.prob <- 1 - pchisq(modelChi, chidf)
 format(round(chisq.prob, 2), nsmall = 5)
 
@@ -335,9 +239,7 @@ format(round(chisq.prob, 2), nsmall = 5)
 # Hosmer and Lemeshow R square
 R2.hl<-modelChi/modelt$null.deviance
 R2.hl
-
-
-# Cox and Snell R Square (the last number; here is 2000 should be total no. of ovservation)
+# Cox and Snell R Square 
 
 R.cs <- 1 - exp ((modelt$deviance - modelt$null.deviance) /2000)
 R.cs
@@ -348,18 +250,16 @@ R.n <- R.cs /(1-(exp(-(modelt$null.deviance/2000))))
 R.n
 
 
-
-######### Lackfit Deviance ######################################################
-residuals(modelt) # deviance residuals
-residuals(modelt, "pearson") # pearson residuals
+residuals(modelt)
+residuals(modelt, "pearson") 
 
 sum(residuals(modelt, type = "pearson")^2)
 deviance(modelt)
 
-#########Large p value indicate good model fit
+#Large p value indicate good model fit
 1-pchisq(deviance(modelt), df.residual(modelt))
 
-#######################################################################################
+
 #Function - HS Test
 
 hosmerlem <- function (y, yhat, g = 10) {
@@ -371,19 +271,15 @@ hosmerlem <- function (y, yhat, g = 10) {
   P <- 1 - pchisq(chisq, g - 2)
   c("X^2" = chisq, Df = g - 2, "P(>Chi)" = P)
 }
-################################################################################################################
-# How to use the function. Data.train is the name of the dataset. model is name of the glm output
-## High p value incidates the model fits well
+
 
 hosmerlem(y = data.test$Churn, yhat = fitted(modelt))
-################################################################################################################
 # Hosmer and Lemeshow test in a different way
-## High p value incidates the model fits well
+#High p value incidates the model fits well
 
 library(ResourceSelection)
 hl <- hoslem.test(data.test$Churn, fitted(modelt), g=10)
 hl
-#####################################################################################################################
 # Coefficients (Odds)
 modelt$coefficients
 # Coefficients (Odds Ratio)
@@ -402,7 +298,7 @@ data.test$Churn <- as.factor(data.test$Churn)
 
 #Metrics - Fit Statistics
 
-predclass <-ifelse(prediction>coords(rocCurve,"best")[1],1,0)
+#predclass <-ifelse(prediction>coords(rocCurve,"best")[1],1,0)
 Confusion <- table(Predicted = predclass,Actual = data.test$Churn)
 AccuracyRate <- sum(diag(Confusion))/sum(Confusion)
 Gini <-2*auc(rocCurve)-1
@@ -416,10 +312,7 @@ AUCmetric
 Confusion 
 plot(rocCurve)
 
-
-
-#########################################################################################################################
-### KS statistics calculation
+# KS statistics calculation
 data.test$m1.yhat <- predict(modelt, data.test, type = "response")
 
 library(ROCR)
@@ -430,13 +323,8 @@ abline(0,1, lty = 8, col = "grey")
 
 m1.perf <- performance(m1.scores, "tpr", "fpr")
 ks1.logit <- max(attr(m1.perf, "y.values")[[1]] - (attr(m1.perf, "x.values")[[1]]))
-ks1.logit # Thumb rule : should lie between 40 - 70
-
-############################################################################################################
-
-#########################################################################################################################
-###################### Residual Analysis ################################################################################
-
+ks1.logit 
+# Residual Analysis
 
 logistic_data <- data.test
 
@@ -447,13 +335,5 @@ logistic_data$dfbeta<-dfbeta(modelt)
 logistic_data$dffit<-dffits(modelt)
 logistic_data$leverage<-hatvalues(modelt)
 
-#logistic_data[, c("leverage", "studentized.residuals", "dfbeta")]
-#write.csv(logistic_data, file = "C:\\Users\\Subhojit\\Desktop\\Logistic Regression\\Prepared by me\\pred.csv")
-
-
-
-
-#######################################################################################################
-
-##########################################
+logistic_data[, c("leverage", "studentized.residuals", "dfbeta")]
 
