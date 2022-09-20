@@ -337,5 +337,5 @@ logistic_data$leverage<-hatvalues(modelt)
 
 logistic_data[, c("leverage", "studentized.residuals", "dfbeta")]
 
-$ git reset --hard HEAD~1
+
 
