@@ -87,3 +87,4 @@ airlines_new_k <- data.frame(airlines, AirlineCluster_K$cluster)
 write.csv(airlines_new_k,"Airlines_k-Means.csv", row.names = FALSE)
 write.csv(Bal_mean_k,"Airlines_k-Means_Summary.csv", row.names = FALSE)
 
+$ git reset --hard HEAD~1
