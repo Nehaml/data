@@ -119,5 +119,5 @@ write.csv(normal_result,"finalpredict.csv", row.names = FALSE)
 plot(normal_result)
 
 
-$ git reset --hard HEAD~1
+
 
