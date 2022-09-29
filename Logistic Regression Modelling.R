@@ -190,3 +190,4 @@ m1.perf <- performance(m1.scores, "tpr", "fpr")
 ks1.logit <- max(attr(m1.perf, "y.values")[[1]] - (attr(m1.perf, "x.values")[[1]]))
 ks1.logit 
 
+$ git reset --hard HEAD~1
